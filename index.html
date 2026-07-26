@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title id="pageTitle">Runner Sheet — Collectable tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1220;
+    --panel:#161C2E;
+    --edge:#28314C;
+    --paper:#F3EFE4;
+    --ki:#FF7A18;
+    --capsule:#2FD39B;
+    --dim:#7C87A6;
+    --display:'Anton', 'Haettenschweiler', 'Arial Narrow', sans-serif;
+    --body:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(60rem 30rem at 78% -10%, rgba(255,122,24,.10), transparent 60%),
+      radial-gradient(50rem 30rem at 5% 110%, rgba(47,211,155,.07), transparent 60%);
+  }
+  .wrap{position:relative;z-index:1;max-width:1360px;margin:0 auto;padding:0 20px 80px}
+
+  /* ---------- masthead ---------- */
+  header{padding:38px 0 20px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ki);margin:0 0 10px
+  }
+  h1{
+    font-family:var(--display);font-weight:400;
+    font-size:clamp(38px,7.5vw,80px);line-height:.92;letter-spacing:.005em;
+    text-transform:uppercase;margin:0;
+  }
+  h1 em{font-style:normal;color:var(--ki)}
+  .sub{color:var(--dim);font-size:14px;margin:12px 0 0;max-width:52ch;line-height:1.55}
+
+  /* ---------- signature: the runner strip ---------- */
+  .meter{margin:30px 0 0;border-top:1px solid var(--edge);padding-top:18px}
+  .meter-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .count{font-family:var(--display);font-size:30px;line-height:1;letter-spacing:.01em}
+  .count b{color:var(--capsule);font-weight:400}
+  .count span{color:var(--dim)}
+  .meter-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+  .strip{display:flex;gap:3px;margin-top:12px;height:22px}
+  .strip i{
+    flex:1 1 0;border-radius:1px;background:var(--edge);
+    transition:background .25s ease, transform .25s ease;transform-origin:bottom;
+  }
+  .strip i.on{background:var(--capsule)}
+  .strip i.hi{background:var(--ki);transform:scaleY(1.18)}
+
+  /* ---------- toolbar ---------- */
+  .bar{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    margin:26px 0 8px;padding:14px;border:1px solid var(--edge);border-radius:10px;
+    background:var(--panel);
+  }
+  button, .filebtn{
+    font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--paper);background:transparent;border:1px solid var(--edge);
+    padding:9px 14px;border-radius:6px;cursor:pointer;transition:.15s;
+  }
+  button:hover,.filebtn:hover{border-color:var(--ki);color:var(--ki)}
+  button:focus-visible,.filebtn:focus-visible,input:focus-visible{outline:2px solid var(--ki);outline-offset:2px}
+  .primary{border-color:var(--ki);color:var(--ki)}
+  .primary:hover{background:var(--ki);color:var(--ink)}
+  input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .search{
+    flex:1 1 190px;min-width:150px;font-family:var(--body);font-size:14px;text-transform:none;letter-spacing:0;
+    background:var(--ink);border:1px solid var(--edge);color:var(--paper);padding:10px 12px;border-radius:6px;
+  }
+  .search::placeholder{color:var(--dim)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip[aria-pressed=true]{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+  .spacer{flex:1 1 auto}
+  .status{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.06em;min-height:16px;margin:4px 2px 0}
+
+  /* ---------- grid ---------- */
+  .grid{
+    display:grid;gap:16px;margin-top:22px;
+    grid-template-columns:repeat(auto-fill,minmax(178px,1fr));
+  }
+  .card{
+    position:relative;display:flex;flex-direction:column;text-align:left;padding:0;
+    border:1px solid var(--edge);border-radius:10px;overflow:hidden;background:var(--panel);
+    text-transform:none;letter-spacing:0;font-family:var(--body);cursor:pointer;
+    transition:border-color .18s, transform .18s;
+  }
+  .card:hover{border-color:var(--ki);transform:translateY(-3px);color:var(--paper)}
+  .art{
+    aspect-ratio:3/4;width:100%;object-fit:cover;object-position:center top;display:block;
+    background:#0A0D17;
+    transition:opacity .25s ease, filter .25s ease;
+  }
+  .card.missing{border-style:dashed;background:transparent}
+  .card.missing .art{opacity:.28;filter:grayscale(1) contrast(.9)}
+  .card.missing .name{color:var(--dim)}
+  .card.missing:hover .art{opacity:.5}
+  .body{padding:11px 12px 13px;display:flex;flex-direction:column;gap:5px;flex:1}
+  .name{font-size:13.5px;font-weight:600;line-height:1.25}
+  .meta{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.04em}
+  .badge{
+    position:absolute;top:9px;left:9px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:3px;
+    background:rgba(14,18,32,.86);border:1px solid var(--edge);color:var(--paper);backdrop-filter:blur(3px);
+  }
+  .badge.reissue{border-color:var(--ki);color:var(--ki)}
+  .badge.special{border-color:#B98BFF;color:#B98BFF}
+  .badge.set{border-color:#6FB6FF;color:#6FB6FF}
+  .tick{
+    position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:50%;
+    display:grid;place-items:center;font-size:12px;font-weight:700;
+    background:var(--capsule);color:var(--ink);
+  }
+  .card.missing .tick{display:none}
+
+  /* fallback when a remote image fails to load */
+  .art.broken{
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:14px;font-family:var(--mono);font-size:10px;line-height:1.5;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--dim);
+    background:repeating-linear-gradient(45deg,#0E1220,#0E1220 8px,#141A2C 8px,#141A2C 16px);
+  }
+  .report{
+    margin-top:14px;border:1px solid var(--edge);border-radius:10px;background:var(--panel);
+    padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--paper);
+  }
+  .report h3{font-family:var(--body);font-size:13px;margin:0 0 8px;letter-spacing:.02em}
+  .report .ok{color:var(--capsule)}
+  .report .bad{color:#FF6B6B}
+  .report .muted{color:var(--dim)}
+  .report ul{margin:8px 0 0;padding-left:18px}
+
+  /* ---------- empty state ---------- */
+  .empty{
+    border:1px dashed var(--edge);border-radius:12px;padding:46px 26px;text-align:center;margin-top:26px;
+  }
+  .empty h2{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:24px;margin:0 0 10px;letter-spacing:.02em}
+  .empty p{color:var(--dim);font-size:14px;margin:0 auto;max-width:46ch;line-height:1.6}
+  .empty code{font-family:var(--mono);font-size:12.5px;color:var(--ki)}
+  body.dragging .empty{border-color:var(--ki)}
+
+  @media (max-width:520px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+    .strip{height:14px;gap:2px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow" id="eyebrowText">Collectable model kits</p>
+    <h1 id="titleText">Runner<br>Sheet</h1>
+    <p class="sub" id="subText">Load a kit list and your own collection file. Tap a box to mark it owned; faded boxes are the ones still missing from the shelf.</p>
+
+    <div class="meter">
+      <div class="meter-head">
+        <span class="count" id="count"><b>0</b><span>/0</span></span>
+        <span class="meter-label" id="meterLabel">no catalog loaded</span>
+      </div>
+      <div class="strip" id="strip" aria-hidden="true"></div>
+    </div>
+  </header>
+
+  <div class="bar">
+    <label class="filebtn" tabindex="0" role="button">Load catalog
+      <input type="file" id="catalogFile" accept=".json,application/json">
+    </label>
+    <label class="filebtn" tabindex="0" role="button">Load my collection
+      <input type="file" id="ownedFile" accept=".json,application/json">
+    </label>
+    <button class="primary" id="saveBtn">Save my collection</button>
+    <button id="checkBtn">Check images</button>
+    <span class="spacer"></span>
+    <input class="search" id="search" type="search" placeholder="Search…" aria-label="Search catalog">
+    <div class="chips">
+      <button class="chip" data-filter="all" aria-pressed="true">All</button>
+      <button class="chip" data-filter="have" aria-pressed="false">Have</button>
+      <button class="chip" data-filter="missing" aria-pressed="false">Missing</button>
+      <button class="chip" data-filter="reissue" aria-pressed="false">Variants</button>
+    </div>
+  </div>
+  <div class="bar" id="categoryBar" hidden>
+    <span class="meter-label" style="padding-left:2px">Group:</span>
+    <div class="chips" id="categoryChips"></div>
+  </div>
+  <p class="status" id="status"></p>
+
+  <div id="stage"></div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  let catalog = [];          // array of item objects
+  let owned = new Set();     // ids owned
+  let meta = { collection: "My collection" };
+  let catalogMeta = {};      // title/subtitle/eyebrow/categories from the loaded catalog file
+  let categories = [];       // [{id,label}] derived from data
+  let filter = "all";
+  let catFilter = "all";
+  let query = "";
+  let saveHandle = null;     // File System Access handle, when supported
+  let dirty = false;
+
+  const $ = id => document.getElementById(id);
+  const stage = $("stage"), strip = $("strip"), statusEl = $("status");
+
+  const say = msg => { statusEl.textContent = msg; };
+
+  /* ---------- loading ---------- */
+
+  function readFile(file){
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => { try { res(JSON.parse(r.result)); } catch(e){ rej(new Error("That file isn't valid JSON.")); } };
+      r.onerror = () => rej(new Error("Couldn't read that file."));
+      r.readAsText(file);
+    });
+  }
+
+  function applyCatalog(data){
+    const items = Array.isArray(data) ? data : (data.items || data.kits || []);
+    if(!items.length) throw new Error("No items found in that file — expected an \"items\" array.");
+
+    catalogMeta = Array.isArray(data) ? {} : data;
+    catalog = items.map((it, i) => ({
+      id: String(it.id || it.name || ("item-" + i)),
+      name: it.name || "Untitled",
+      show: it.show || it.series || "",
+      release: it.release || "",
+      line: it.line || "",
+      printing: (it.printing || "original").toLowerCase(),
+      printingLabel: it.printingLabel || "",
+      category: it.category || "",
+      image: it.image || ""
+    }));
+
+    // Build category chips only if the data actually uses categories.
+    const catSet = new Map();
+    catalog.forEach(k => {
+      if(k.category){
+        const label = (catalogMeta.categoryLabels && catalogMeta.categoryLabels[k.category]) || k.category;
+        catSet.set(k.category, label);
+      }
+    });
+    categories = [...catSet.entries()].map(([id, label]) => ({ id, label }));
+    catFilter = "all";
+    buildCategoryChips();
+    applyPageText();
+
+    render();
+    say(catalog.length + " items loaded.");
+  }
+
+  function applyPageText(){
+    const title = catalogMeta.title || "Runner Sheet";
+    const eyebrow = catalogMeta.eyebrow || catalogMeta.series || "Collectable tracker";
+    const sub = catalogMeta.subtitle || catalogMeta.note ||
+      "Load a catalog and your own collection file. Tap a tile to mark it owned; faded tiles are the ones still missing.";
+    $("titleText").innerHTML = esc(title).replace(/\n/g, "<br>");
+    $("eyebrowText").textContent = eyebrow;
+    $("subText").textContent = sub;
+    document.getElementById("pageTitle").textContent = "Runner Sheet — " + title.replace(/\s+/g, " ");
+    document.title = "Runner Sheet — " + title.replace(/\s+/g, " ");
+  }
+
+  function buildCategoryChips(){
+    const bar = $("categoryBar"), wrap = $("categoryChips");
+    if(!categories.length){ bar.hidden = true; wrap.innerHTML = ""; return; }
+    bar.hidden = false;
+    wrap.innerHTML = '<button class="chip cat" data-cat="all" aria-pressed="true">All</button>' +
+      categories.map(c => '<button class="chip cat" data-cat="' + esc(c.id) + '" aria-pressed="false">' + esc(c.label) + '</button>').join("");
+    wrap.querySelectorAll(".chip.cat").forEach(c => c.addEventListener("click", () => {
+      catFilter = c.dataset.cat;
+      wrap.querySelectorAll(".chip.cat").forEach(o => o.setAttribute("aria-pressed", String(o === c)));
+      render();
+    }));
+  }
+
+  function applyOwned(data){
+    const list = Array.isArray(data) ? data : (data.owned || data.have || []);
+    owned = new Set(list.map(v => String(typeof v === "object" && v ? (v.id ?? v.name) : v)));
+    if(!Array.isArray(data)){
+      meta.collection = data.collection || data.name || meta.collection;
+    }
+    dirty = false;
+    render();
+    say(owned.size + " kits marked as owned.");
+  }
+
+  $("catalogFile").addEventListener("change", async e => {
+    const f = e.target.files[0]; if(!f) return;
+    try { applyCatalog(await readFile(f)); } catch(err){ say(err.message); }
+    e.target.value = "";
+  });
+
+  $("ownedFile").addEventListener("change", async e => {
+    const f = e.target.files[0]; if(!f) return;
+    try { applyOwned(await readFile(f)); } catch(err){ say(err.message); }
+    e.target.value = "";
+  });
+
+  // Label-as-button keyboard support
+  document.querySelectorAll("label.filebtn").forEach(l => {
+    l.addEventListener("keydown", e => {
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); l.querySelector("input").click(); }
+    });
+  });
+
+  /* ---------- drag & drop either file ---------- */
+  ["dragenter","dragover"].forEach(t => document.addEventListener(t, e => {
+    e.preventDefault(); document.body.classList.add("dragging");
+  }));
+  ["dragleave","drop"].forEach(t => document.addEventListener(t, e => {
+    if(t === "drop") e.preventDefault();
+    document.body.classList.remove("dragging");
+  }));
+  document.addEventListener("drop", async e => {
+    e.preventDefault();
+    for(const f of e.dataTransfer.files){
+      try{
+        const data = await readFile(f);
+        const looksLikeCatalog = Array.isArray(data) ? !!(data[0] && data[0].name) : !!(data.items || data.kits);
+        looksLikeCatalog ? applyCatalog(data) : applyOwned(data);
+      }catch(err){ say(err.message); }
+    }
+  });
+
+  /* ---------- saving ---------- */
+
+  function collectionJSON(){
+    return JSON.stringify({
+      collection: meta.collection,
+      updated: new Date().toISOString().slice(0,10),
+      count: owned.size,
+      owned: catalog.filter(k => owned.has(k.id)).map(k => k.id)
+    }, null, 2);
+  }
+
+  async function save(){
+    if(!catalog.length){ say("Load the catalog first."); return; }
+    const text = collectionJSON();
+    if(window.showSaveFilePicker){
+      try{
+        if(!saveHandle){
+          saveHandle = await window.showSaveFilePicker({
+            suggestedName: "my-collection.json",
+            types:[{description:"JSON", accept:{"application/json":[".json"]}}]
+          });
+        }
+        const w = await saveHandle.createWritable();
+        await w.write(text); await w.close();
+        dirty = false;
+        say("Saved to " + saveHandle.name + " · " + owned.size + " kits.");
+        return;
+      }catch(err){
+        if(err && err.name === "AbortError"){ say("Save cancelled."); return; }
+        saveHandle = null; // fall through to download
+      }
+    }
+    const url = URL.createObjectURL(new Blob([text], {type:"application/json"}));
+    const a = document.createElement("a");
+    a.href = url; a.download = "my-collection.json"; a.click();
+    URL.revokeObjectURL(url);
+    dirty = false;
+    say("Downloaded my-collection.json · " + owned.size + " kits.");
+  }
+
+  $("saveBtn").addEventListener("click", save);
+
+  /* ---------- image diagnostics ---------- */
+
+  let failedInView = 0;
+  let noteTimer = null;
+
+  function noteFailures(){
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => {
+      if(failedInView > 0){
+        say(failedInView + " image" + (failedInView === 1 ? "" : "s") +
+            " failed to load. Tap “Check images” for a breakdown.");
+      }
+    }, 400);
+  }
+
+  function hostOf(url){
+    try { return new URL(url, location.href).hostname; }
+    catch(_){ return "(unparseable)"; }
+  }
+
+  function testImage(url){
+    return new Promise(res => {
+      const img = new Image();
+      let done = false;
+      const finish = ok => { if(!done){ done = true; res(ok); } };
+      img.referrerPolicy = "no-referrer";
+      img.onload = () => finish(true);
+      img.onerror = () => finish(false);
+      setTimeout(() => finish(false), 12000);
+      img.src = url;
+    });
+  }
+
+  async function checkImages(){
+    if(!catalog.length){ say("Load a catalog first."); return; }
+    const withImg = catalog.filter(k => k.image);
+    const btn = $("checkBtn");
+    btn.disabled = true;
+    btn.textContent = "Checking…";
+
+    const byHost = {};
+    let done = 0;
+    for(const k of withImg){
+      const host = hostOf(k.image);
+      byHost[host] = byHost[host] || { ok: 0, bad: 0, examples: [] };
+      const ok = await testImage(k.image);
+      byHost[host][ok ? "ok" : "bad"]++;
+      if(!ok && byHost[host].examples.length < 2) byHost[host].examples.push(k.name);
+      done++;
+      btn.textContent = "Checking… " + done + "/" + withImg.length;
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Check images";
+
+    const hosts = Object.entries(byHost).sort((a,b) => b[1].bad - a[1].bad);
+    const totalOk = hosts.reduce((n,[,v]) => n + v.ok, 0);
+    const totalBad = hosts.reduce((n,[,v]) => n + v.bad, 0);
+    const noImg = catalog.length - withImg.length;
+
+    const rows = hosts.map(([host, v]) => {
+      const cls = v.bad === 0 ? "ok" : (v.ok === 0 ? "bad" : "");
+      const ex = v.examples.length ? ' <span class="muted">(e.g. ' + esc(v.examples.join(", ")) + ')</span>' : "";
+      return '<li><span class="' + cls + '">' + esc(host) + '</span> — ' +
+             v.ok + ' loaded, ' + v.bad + ' failed' + ex + '</li>';
+    }).join("");
+
+    const old = document.querySelector(".report");
+    if(old) old.remove();
+    const box = document.createElement("div");
+    box.className = "report";
+    box.innerHTML =
+      '<h3>Image check</h3>' +
+      '<span class="ok">' + totalOk + ' loaded</span> · ' +
+      '<span class="' + (totalBad ? "bad" : "muted") + '">' + totalBad + ' failed</span>' +
+      (noImg ? ' · <span class="muted">' + noImg + ' with no URL</span>' : "") +
+      '<ul>' + rows + '</ul>';
+    stage.parentNode.insertBefore(box, stage);
+    say("Image check finished: " + totalOk + " loaded, " + totalBad + " failed.");
+  }
+
+  $("checkBtn").addEventListener("click", checkImages);
+
+  addEventListener("keydown", e => {
+    if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s"){ e.preventDefault(); save(); }
+  });
+
+  addEventListener("beforeunload", e => {
+    if(dirty){ e.preventDefault(); e.returnValue = ""; }
+  });
+
+  /* ---------- filters ---------- */
+
+  document.querySelectorAll(".chip:not(.cat)").forEach(c => c.addEventListener("click", () => {
+    filter = c.dataset.filter;
+    document.querySelectorAll(".chip:not(.cat)").forEach(o => o.setAttribute("aria-pressed", String(o === c)));
+    render();
+  }));
+
+  $("search").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); render(); });
+
+  function visible(){
+    return catalog.filter(k => {
+      if(catFilter !== "all" && k.category !== catFilter) return false;
+      if(filter === "have" && !owned.has(k.id)) return false;
+      if(filter === "missing" && owned.has(k.id)) return false;
+      if(filter === "reissue" && !(k.printing !== "original" && k.printing)) return false;
+      if(query){
+        const hay = (k.name + " " + k.show + " " + k.release + " " + k.printingLabel).toLowerCase();
+        if(!hay.includes(query)) return false;
+      }
+      return true;
+    });
+  }
+
+  /* ---------- toggle ---------- */
+
+  function toggle(id){
+    const has = owned.has(id);
+    has ? owned.delete(id) : owned.add(id);
+    dirty = true;
+
+    // If the card would drop out of the current view, rebuild. Otherwise patch in place
+    // so images don't reload and the page doesn't jump.
+    if(filter === "have" || filter === "missing"){ render(); return; }
+
+    const card = stage.querySelector('.card[data-id="' + CSS.escape(id) + '"]');
+    if(!card){ render(); return; }
+    const nowHas = owned.has(id);
+    card.classList.toggle("have", nowHas);
+    card.classList.toggle("missing", !nowHas);
+    card.setAttribute("aria-pressed", String(nowHas));
+    const tick = card.querySelector(".tick");
+    if(nowHas && !tick){
+      const t = document.createElement("span");
+      t.className = "tick"; t.setAttribute("aria-hidden","true"); t.textContent = "✓";
+      card.appendChild(t);
+    } else if(!nowHas && tick){ tick.remove(); }
+    updateMeter();
+  }
+
+  /* ---------- render ---------- */
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  function updateMeter(){
+    const total = catalog.length, have = catalog.filter(k => owned.has(k.id)).length;
+    $("count").innerHTML = "<b>" + have + "</b><span>/" + total + "</span>";
+    $("meterLabel").textContent = total
+      ? (total - have === 0 ? "complete set" : (total - have) + " still missing")
+      : "no catalog loaded";
+
+    if(strip.children.length !== total){
+      strip.innerHTML = "";
+      catalog.forEach(k => {
+        const i = document.createElement("i");
+        i.dataset.id = k.id;
+        strip.appendChild(i);
+      });
+    }
+    catalog.forEach((k, n) => {
+      strip.children[n].classList.toggle("on", owned.has(k.id));
+    });
+  }
+
+  function render(){
+    updateMeter();
+
+    // grid
+    if(!catalog.length){
+      stage.innerHTML =
+        '<div class="empty"><h2>Nothing loaded yet</h2>' +
+        '<p>Pick a <code>catalog.json</code> with “Load catalog”, then your <code>*-collection.json</code> with “Load my collection”. ' +
+        'You can also drag both files anywhere onto this page.</p></div>';
+      return;
+    }
+
+    const rows = visible();
+    if(!rows.length){
+      stage.innerHTML = '<div class="empty"><h2>No matches</h2><p>Clear the search box or switch back to “All”.</p></div>';
+      return;
+    }
+
+    failedInView = 0;
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    grid.innerHTML = rows.map(k => {
+      const has = owned.has(k.id);
+      const label = k.printingLabel || (k.printing === "reissue" ? "Reissue" : "");
+      const cls = ["reissue","special","set"].includes(k.printing) ? k.printing : "";
+      return '<button class="card ' + (has ? "have" : "missing") + '" data-id="' + esc(k.id) + '" ' +
+        'aria-pressed="' + has + '" title="' + esc(k.name) + (label ? " — " + esc(label) : "") + '">' +
+        (k.image
+          ? '<img class="art" loading="lazy" referrerpolicy="no-referrer" alt="" src="' + esc(k.image) + '">'
+          : '<div class="art broken">no image</div>') +
+        (label ? '<span class="badge ' + cls + '">' + esc(label) + '</span>' : "") +
+        (has ? '<span class="tick" aria-hidden="true">✓</span>' : "") +
+        '<span class="body">' +
+          '<span class="name">' + esc(k.name) + '</span>' +
+          '<span class="meta">' + esc([k.line, k.show].filter(Boolean).join(" · ")) + '</span>' +
+        '</span></button>';
+    }).join("");
+
+    grid.addEventListener("click", e => {
+      const card = e.target.closest(".card");
+      if(card) toggle(card.dataset.id);
+    });
+
+    // hover on a card highlights its tick in the runner strip
+    // <img> error events don't bubble, but they do fire during capture on ancestors
+    grid.addEventListener("error", e => {
+      const img = e.target;
+      if(!img || img.tagName !== "IMG") return;
+      const card = img.closest(".card");
+      const ph = document.createElement("div");
+      ph.className = "art broken";
+      ph.textContent = "image blocked";
+      img.replaceWith(ph);
+      if(card) card.dataset.imgfail = "1";
+      failedInView++;
+      noteFailures();
+    }, true);
+
+    grid.addEventListener("mouseover", e => {
+      const card = e.target.closest(".card"); if(!card) return;
+      const t = strip.querySelector('[data-id="' + CSS.escape(card.dataset.id) + '"]');
+      if(t) t.classList.add("hi");
+    });
+    grid.addEventListener("mouseout", () => strip.querySelectorAll(".hi").forEach(t => t.classList.remove("hi")));
+
+    stage.innerHTML = "";
+    stage.appendChild(grid);
+  }
+
+  /* ---------- try auto-loading side-by-side files (works over http, not file://) ---------- */
+  (async () => {
+    try{
+      const c = await fetch("./catalog.json"); if(c.ok) applyCatalog(await c.json());
+      const o = await fetch("./my-collection.json"); if(o.ok) applyOwned(await o.json());
+    }catch(_){ /* file:// — user loads manually */ }
+    render();
+  })();
+
+})();
+</script>
+</body>
+</html>
